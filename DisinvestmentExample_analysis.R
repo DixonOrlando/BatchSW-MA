@@ -678,9 +678,7 @@ ggplot(data =final_join, aes(x=Period, y=Sequence, fill = factor(value))) + ###F
   theme(legend.position="none") +
   labs(y = "Ward")
 
-#2 batches; 7 number of periods in each stepped wedge design; 1 cluster randomized to each sequence; 5 periods overlap
-#estimates: ICC, CAC, within cluster correlation structure, treatment effect heterogeneity
-#say something about separate vs shared period effect? 
+
 
 
 
