@@ -560,8 +560,6 @@ analysis_results = analysis_results %>%
     TRUE ~ model
   ))
 
-#analysis_results$model <- factor(analysis_results$model, levels = c("Model A", "Model B", "Model C", "Model D", "ma.fixed", "ma.random.reml.classic", "ma.random.reml.HK", "ma.random.reml.KR", "ma.random.SJ.classic", "ma.random.SJ.HK", "ma.random.SJ.KR"))
-
 #Sorting the levels so that when plotted it can be ordered nicely.
 analysis_results$model = factor(analysis_results$model, levels = sort(unique(analysis_results$model), decreasing = T))
 
@@ -639,7 +637,7 @@ melted_myx00 = melted_myx00 %>%
          site = factor(as.character(site)))
 
 
-data_join = dis_data_final %>% ###CORRECT ONE!
+data_join = dis_data_final %>% 
   mutate(sw_step = as.integer(as.character(sw_step)),
          index_ward = as.integer(as.character(index_ward)),
          site = as.integer(as.character(site))) %>% 
@@ -659,16 +657,14 @@ data_join = dis_data_final %>% ###CORRECT ONE!
   )) %>%
   dplyr::count(sw_step, index_ward_new, site, no_we_exposure) 
   
-  ##%>% 
-  #mutate(index_ward = if_else(site == 2, index_ward - 4, index_ward))
 
-final_join = melted_myx00 %>% ####CORRECT ONE!
+final_join = melted_myx00 %>% 
   dplyr::select(-site) %>%
   left_join(data_join %>% dplyr::select(-site), by = c("Period" = "sw_step", "Sequence" = "index_ward_new", "value" = "no_we_exposure")) 
 
 
-color_palette1 <-colorRampPalette(c( "white", "grey"))(2)
-ggplot(data =final_join, aes(x=Period, y=Sequence, fill = factor(value))) + ###FINAL PLOT!
+color_palette1 <-colorRampPalette(c( "white", "grey"))(2) ###FINAL PLOT!
+ggplot(data =final_join, aes(x=Period, y=Sequence, fill = factor(value))) + 
   geom_tile( colour = "grey50") +
   scale_y_reverse(breaks=c(1:12)) +
   scale_x_continuous(breaks=c(1:12)) +
