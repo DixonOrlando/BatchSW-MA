@@ -9,7 +9,12 @@ library(ggpubr)
 #Reading the results from the simulation study and preparing it for analysis.
 all_contsresults = read_csv("all_contsresults_BE&E_final.csv")
 
+all_output = read_csv("all_output_BE&E_final.csv")
+
 all_contsresults = all_contsresults %>%
+  dplyr::select(-`...1`)
+
+MA_checkdata = read_csv("MA_check_finaldata.csv") %>%
   dplyr::select(-`...1`)
 
 #Changing the values of both nolap and nbatch, so it's easier to read in the plots.
@@ -27,6 +32,24 @@ all_contsresults = all_contsresults %>%
     nbatch == "5" ~ "5 batches"
   ),
   nbatch = factor(nbatch, levels = c("2 batches", "5 batches"))
+  )
+
+all_contsresults = all_contsresults %>%
+  left_join(MA_checkdata, by = c("model" = "Model", "comb_ID" = "comb_ID"))
+
+all_output = all_output %>%
+  mutate(nolap = as.character(nolap),
+         nolap = case_when(
+           nolap == "1" ~ "1 period of overlap",
+           nolap == "2" | nolap == "4" ~ "T-2 periods of overlap"
+         ),
+         nolap = factor(nolap, levels = c("1 period of overlap", "T-2 periods of overlap")),
+         nbatch = as.character(nbatch),
+         nbatch = case_when(
+           nbatch == "2" ~ "2 batches",
+           nbatch == "5" ~ "5 batches"
+         ),
+         nbatch = factor(nbatch, levels = c("2 batches", "5 batches"))
   )
 
 #Transforming into appropriate format for each sections.
@@ -72,6 +95,17 @@ all_contsresults_nonconv = all_contsresults %>%
   )) %>%
   tidyr::pivot_wider(names_from = model,
                      values_from = nonconv)
+
+all_contsresults_MACHECK = all_contsresults %>%
+  dplyr::select(model, final_conditional, T, nbatch, nolap, K, M, sharedtime, effsize, ICC, CAC, corrstruct, treateffvar, comb_ID) %>%
+  mutate(with_corr = case_when(
+    CAC == 1 ~ "Exch",
+    CAC != 1 & corrstruct == 0 ~ "BE",
+    CAC != 1 & corrstruct == 1 ~ "DTD"
+  )) %>%
+  filter(!grepl("mod_A|mod_B|mod_C|mod_D", model)) %>%
+  tidyr::pivot_wider(names_from = model,
+                     values_from = final_conditional)
 
 
 ########################All the meta-analysis plots first########################
@@ -844,5 +878,171 @@ ggsave("nonconv_overall_separate.png", height = 13, width = 15)
 
 nonconv_shared
 ggsave("nonconv_overall_shared.png", height = 13, width = 15)
+
+
+######Meta-analysis check######
+
+#Prespecifying the steps for the nested loop plots.
+steps = c("K",  "T", "ICC", "CAC", "treateffvar") 
+steps_names = c("Clusters (K)", "Periods (T)", "ICC", "CAC", expression(sigma[eta]^2))
+
+###SJ first
+
+#Separate period effects
+MACHECK_SJ_separate = nested_loop_plot(resdf = all_contsresults_MACHECK %>%
+                                      filter(sharedtime == 1 & effsize == 0) %>%
+                                      mutate(M = factor(M)),
+                                    grid_labeller = labeller(nbatch = label_value, nolap = label_value),
+                                    x = "M", 
+                                    x_name = "Number of participants per cluster period (m)",
+                                    methods = c("MA.random.SJ.classic", "MA.random.SJ.HK", "MA.random.SJ.HK.SEadhoc", "MA.random.SJ.HK.IQadhoc", "MA.random.SJ.KR"),
+                                    steps = steps,
+                                    colors = brewer.pal(6, name = "Dark2")[-5],
+                                    steps_y_base = -0.05,
+                                    steps_y_height = 0.05,
+                                    steps_y_shift = 0.07,
+                                    line_linetypes = c(1, 2, 2, 2, 1),
+                                    point_shapes = c(17, 15, 15, 15, 17),
+                                    steps_annotation_nudge = 0.1,
+                                    steps_annotation_size  = 3,
+                                    steps_values_annotate = T,
+                                    spu_x_shift = 2,
+                                    steps_names = steps_names,
+                                    grid_rows = "nbatch",
+                                    grid_cols = "nolap",
+                                    y_name = "Percentage of upper and/or lower meta-analysis CIs that exceeded the extremes",
+                                    hline_intercept = 0,
+                                    legend_name = "Model",
+                                    legend_labels = c(c("Random MA; Tau:SJ; CI:classic", "Random MA; Tau:SJ; CI:HK", "Random MA; Tau:SJ; CI:HK.SEadhoc", "Random MA; Tau:SJ; CI:HK.IQadhoc", "Random MA; Tau:SJ; CI:KR")),
+                                    post_processing = list(
+                                      add_custom_theme = list(
+                                        legend.position="bottom",
+                                        axis.text.x = element_text(angle = -90, 
+                                                                   vjust = 0.5, 
+                                                                   size = 5) 
+                                      )))
+
+
+#Shared period effects
+MACHECK_SJ_shared = nested_loop_plot(resdf = all_contsresults_MACHECK %>%
+                                    filter(sharedtime != 1 & effsize == 0) %>%
+                                    mutate(M = factor(M)),
+                                  grid_labeller = labeller(nbatch = label_value, nolap = label_value),
+                                  x = "M", 
+                                  x_name = "Number of participants per cluster period (m)",
+                                  methods = c("MA.random.SJ.classic", "MA.random.SJ.HK", "MA.random.SJ.HK.SEadhoc", "MA.random.SJ.HK.IQadhoc", "MA.random.SJ.KR"),
+                                  steps = steps,
+                                  colors = brewer.pal(6, name = "Dark2")[-5],
+                                  steps_y_base = -0.05,
+                                  steps_y_height = 0.05,
+                                  steps_y_shift = 0.07,
+                                  line_linetypes = c(1, 2, 2, 2, 1),
+                                  point_shapes = c(17, 15, 15, 15, 17),
+                                  steps_annotation_nudge = 0.1,
+                                  steps_annotation_size  = 3,
+                                  steps_values_annotate = T,
+                                  spu_x_shift = 2,
+                                  steps_names = steps_names,
+                                  grid_rows = "nbatch",
+                                  grid_cols = "nolap",
+                                  y_name = "Percentage of upper and/or lower meta-analysis CIs that exceeded the extremes",
+                                  hline_intercept = 0,
+                                  legend_name = "Model",
+                                  legend_labels = c("Random MA; Tau:SJ; CI:classic", "Random MA; Tau:SJ; CI:HK", "Random MA; Tau:SJ; CI:HK.SEadhoc", "Random MA; Tau:SJ; CI:HK.IQadhoc", "Random MA; Tau:SJ; CI:KR"),
+                                  post_processing = list(
+                                    add_custom_theme = list(
+                                      legend.position="bottom",
+                                      axis.text.x = element_text(angle = -90, 
+                                                                 vjust = 0.5, 
+                                                                 size = 5) 
+                                    )))
+
+###Then REML
+
+#Separate period effects
+MACHECK_reml_separate = nested_loop_plot(resdf = all_contsresults_MACHECK %>%
+                                         filter(sharedtime == 1 & effsize == 0) %>%
+                                         mutate(M = factor(M)),
+                                       grid_labeller = labeller(nbatch = label_value, nolap = label_value),
+                                       x = "M", 
+                                       x_name = "Number of participants per cluster period (m)",
+                                       methods = c("MA.random.reml.classic", "MA.random.reml.HK", "MA.random.reml.HK.SEadhoc", "MA.random.reml.HK.IQadhoc", "MA.random.reml.KR"),
+                                       steps = steps,
+                                       colors = brewer.pal(6, name = "Dark2")[-5],
+                                       steps_y_base = -0.05,
+                                       steps_y_height = 0.05,
+                                       steps_y_shift = 0.07,
+                                       line_linetypes = c(1, 2, 2, 2, 1),
+                                       point_shapes = c(17, 15, 15, 15, 17),
+                                       steps_annotation_nudge = 0.1,
+                                       steps_annotation_size  = 3,
+                                       steps_values_annotate = T,
+                                       spu_x_shift = 2,
+                                       steps_names = steps_names,
+                                       grid_rows = "nbatch",
+                                       grid_cols = "nolap",
+                                       y_name = "Percentage of upper and/or lower meta-analysis CIs that exceeded the extremes",
+                                       hline_intercept = 0,
+                                       legend_name = "Model",
+                                       legend_labels = c("Random MA; Tau:REML; CI:classic", "Random MA; Tau:REML; CI:HK", "Random MA; Tau:REML; CI:HK.SEadhoc", "Random MA; Tau:REML; CI:HK.IQadhoc", "Random MA; Tau:REML; CI:KR"),
+                                       post_processing = list(
+                                         add_custom_theme = list(
+                                           legend.position="bottom",
+                                           axis.text.x = element_text(angle = -90, 
+                                                                      vjust = 0.5, 
+                                                                      size = 5) 
+                                         )))
+
+
+#Shared period effects
+MACHECK_reml_shared = nested_loop_plot(resdf = all_contsresults_MACHECK %>%
+                                       filter(sharedtime != 1 & effsize == 0) %>%
+                                       mutate(M = factor(M)),
+                                     grid_labeller = labeller(nbatch = label_value, nolap = label_value),
+                                     x = "M", 
+                                     x_name = "Number of participants per cluster period (m)",
+                                     methods = c("MA.random.reml.classic", "MA.random.reml.HK", "MA.random.reml.HK.SEadhoc", "MA.random.reml.HK.IQadhoc", "MA.random.reml.KR"),
+                                     steps = steps,
+                                     colors = brewer.pal(6, name = "Dark2")[-5],
+                                     steps_y_base = -0.05,
+                                     steps_y_height = 0.05,
+                                     steps_y_shift = 0.07,
+                                     line_linetypes = c(1, 2, 2, 2, 1),
+                                     point_shapes = c(17, 15, 15, 15, 17),
+                                     steps_annotation_nudge = 0.1,
+                                     steps_annotation_size  = 3,
+                                     steps_values_annotate = T,
+                                     spu_x_shift = 2,
+                                     steps_names = steps_names,
+                                     grid_rows = "nbatch",
+                                     grid_cols = "nolap",
+                                     y_name = "Percentage of upper and/or lower meta-analysis CIs that exceeded the extremes",
+                                     hline_intercept = 0,
+                                     legend_name = "Model",
+                                     legend_labels = c("Random MA; Tau:REML; CI:classic", "Random MA; Tau:REML; CI:HK", "Random MA; Tau:REML; CI:HK.SEadhoc", "Random MA; Tau:REML; CI:HK.IQadhoc", "Random MA; Tau:REML; CI:KR"),
+                                     post_processing = list(
+                                       add_custom_theme = list(
+                                         legend.position="bottom",
+                                         axis.text.x = element_text(angle = -90, 
+                                                                    vjust = 0.5, 
+                                                                    size = 5) 
+                                       )))
+
+
+#Saving the results
+MACHECK_SJ_separate
+ggsave("MACHECK_SJ_separate.png", height = 13, width = 15)
+
+MACHECK_SJ_shared
+ggsave("MACHECK_SJ_shared.png", height = 13, width = 15)
+
+MACHECK_reml_separate
+ggsave("MACHECK_reml_separate.png", height = 13, width = 15)
+
+MACHECK_reml_shared
+ggsave("MACHECK_reml_shared.png", height = 13, width = 15)
+
+
+
 
 
