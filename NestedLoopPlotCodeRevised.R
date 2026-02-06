@@ -823,11 +823,11 @@ coverage_final_separate_simp = nested_loop_plot(resdf = all_contsresults_coverag
                                            steps = steps,
                                            colors = c(c_modB, c_modD, c_mafixed, c_maHK),
                                            point_shapes = c(15, 15, 17, 17),
-                                           steps_y_base = 0.05,
-                                           steps_y_height = 0.08,
-                                           steps_y_shift = 0.2,
+                                           steps_y_base = 0.18,
+                                           steps_y_height = 0.05,
+                                           steps_y_shift = 0.1,
                                            steps_annotation_nudge = 0.1,
-                                           steps_annotation_size  = 7,
+                                           steps_annotation_size  = 4.5,
                                            steps_values_annotate = T,
                                            steps_color = "#000000",
                                            steps_annotation_color = "#000000",
@@ -845,19 +845,19 @@ coverage_final_separate_simp = nested_loop_plot(resdf = all_contsresults_coverag
                                                legend.position="bottom",
                                                axis.text.x = element_text(angle = -90, 
                                                                           vjust = 0.5, 
-                                                                          size = 20),
-                                               axis.text.y = element_text(size = 20)
+                                                                          size = 18),
+                                               axis.text.y = element_text(size = 18)
                                              ))) +
   theme(strip.text = element_text(
     size = 20
   ),
-  axis.title.x = element_text(size = 30),  # Change x-axis title size
-  axis.title.y = element_text(size = 30),  # Change y-axis title size
+  axis.title.x = element_text(size = 25),  # Change x-axis title size
+  axis.title.y = element_text(size = 25),  # Change y-axis title size
   legend.position ="right",
   legend.title=element_text(size=18),
   legend.text = element_text(size = 18)
   ) +
-  guides(color = guide_legend(override.aes = list(size = 18)))
+  guides(color = guide_legend(override.aes = list(size = 15)))
 
 
 #Coverage for shared period effects
